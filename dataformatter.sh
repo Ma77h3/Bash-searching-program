@@ -1,3 +1,83 @@
+#!/bin/bash
+
+#check if there is only one input of the file
+
+if [[ ! $# -eq 1 ]]
+then
+        echo The script only accepts 1 argument
+        exit 1
+
+#check if that input is a valid directory
+
+elif [[ ! -d $1 ]]
+then
+        echo "$1 is not a valid directory name"
+        exit 1
+
+fi
+
+# Sorting function
+
+sorting_log_files()
+{
+        #go through all files in directory
+        for files in $(ls $1)
+                do
+                        #if the file is a directory use recursion and start the function using that directory
+                        if [[ -d $1/$files ]]
+                        then
+                                echo $(sorting_log_files "$1/$files")
+                        fi
+                done
+
+
+                #for all the files that match the input description, add the path to the file
+
+                for files in $(ls $1| grep "^sensordata-"| grep "log")
+                do
+                        echo "$1/$files"
+                done
+}
+
+
+#Part 4, Processing Sensor Data
+# iterate through the ouputs of the sorting function to get the files
+
+for files in $(sorting_log_files $1)
+do
+        #Titles
+        echo "Processing sensor data set for $files"
+        echo "Year,Month, Day, Hour, Sensor1, Sensor2, Sensor3, Sensor4, Sensor5"
+
+        #Filter out the lines without the word "readouts"
+        #Change the first two dash of the line into spaces and the first two colons into spaces
+
+        #This allows us to separate the fields and isolate for the hour without the minute
+
+
+        grep "readouts" $files | sed -e 's/-/ /' -e 's/-/ /' -e 's/:/ /' -e 's/:/ /'|
+
+        #initialize sensor varables that keep track of the previous sensor values
+        awk 'BEGIN {OFS=",";sensor1="";sensor2="";sensor3="";sensor4="";sensor5=""}
+
+        # if any of the values is equal to "ERROR" set it equal to the previous sensor values
+        {
+
+
+        if ($9 == "ERROR") { $9=sensor1 }
+        if ($10 == "ERROR") { $10=sensor2 }
+        if ($11 == "ERROR") { $11=sensor3 }
+        if ($12 == "ERROR") { $12=sensor4 }
+        if ($13 == "ERROR") { $13=sensor5 }
+
+        #print the correct formation of Year, Month.....
+        # update previous sensor values
+
+        print $1,$2,$3,$4,$9,$10,$11,$12,$13
+        sensor1=$9;sensor2=$10;sensor3=$11;sensor4=$12;sensor5=$13 }'
+
+        echo "===================================="
+
 #Part 5, Readout Statistics
 
         #Titles
